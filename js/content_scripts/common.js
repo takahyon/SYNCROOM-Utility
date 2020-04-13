@@ -8,7 +8,7 @@ window.onload = function(){
                 disable();
                 break;
             case undefined:
-                enable();
+                //enable();
                 break;
         }
       });

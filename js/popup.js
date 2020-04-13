@@ -5,18 +5,18 @@ window.onload = function() {
     // localStorageの文字列をJSONで取得
     function getObject() {
         console.log("2");
-        //var status = document.getElementById("swi1").checked;
-        var status = true
-        console.log(status)
+        let check = document.getElementById("swi1").checked
+        console.log(check)
         chrome.storage.sync.get(['ndb'], function (result) {
             console.log(result.ndb);
-            status = result.ndb;
-            if (status==undefined){
+            var status = result.ndb;
+            if (status===undefined){
                 status = true;
                 setObject(status);
             }
-            //document.getElementById("swi1").checked = status
-          });
+            document.getElementById("swi1").checked = status
+            console.log(status)
+        });
     };
     // JSONを文字列でlocalStorageに保存
      function setObject(selected) {
@@ -25,11 +25,11 @@ window.onload = function() {
     };
 
     // オプションデータの更新
-    $('#switch1').change(function() {
+    $('#swi1').change(function() {
         console.log("6");
-        //var selected1 = document.getElementById("swi1").checked;
-        //setObject(selected1);
-        showStorage();
+        var selected1 = document.getElementById("swi1").checked;
+        setObject(selected1);
+        getObject();
         console.log("Update OK");
     });
 };
