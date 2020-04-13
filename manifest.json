@@ -30,10 +30,9 @@
         "run_at":"document_start",
         "css": ["css/popup.css"],
         "js": ["js/jquery.js",
-            "js/popup.js",
             "js/content_scripts/drawRooms.js",
             "js/content_scripts/common.js"]
-      }
+		}
     ],
     "permissions": [
       "activeTab",
