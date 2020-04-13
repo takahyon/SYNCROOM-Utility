@@ -1,10 +1,11 @@
-body{
+#ndHiddenBlocker {
     margin: 0px;
     width: 200px;
     height: 200px;
 }
+
 /* === ボタンを表示するエリア ============================== */
-.switchArea {
+#ndHiddenBlocker .switchArea {
  line-height    : 48px;                /* 1行の高さ          */
  letter-spacing : 0;                   /* 文字間             */
  text-align     : center;              /* 文字位置は中央     */
@@ -17,40 +18,41 @@ body{
 }
 
 /* === チェックボックス ==================================== */
-.switchArea input[type="checkbox"] {
+#ndHiddenBlocker .switchArea input[type="checkbox"] {
  display        : none;            /* チェックボックス非表示 */
 }
 
 /* === チェックボックスのラベル（標準） ==================== */
-.switchArea label {
+#ndHiddenBlocker .switchArea label {
  display        : block;               /* ボックス要素に変更 */
  box-sizing     : border-box;          /* 枠線を含んだサイズ */
  height         : 48px;                /* ボタンの高さ       */
  border         : 2px solid rgba(0, 0, 0, 0.36);   /* 未選択タブのの枠線 */
  border-radius  : 24px;                /* 角丸               */
+ cursor         : pointer;
 }
 
 /* === チェックボックスのラベル（ONのとき） ================ */
-.switchArea input[type="checkbox"]:checked +label {
+#ndHiddenBlocker .switchArea input[type="checkbox"]:checked +label {
  border-color   : #6666ff;             /* 選択タブの枠線     */
 }
 
 /* === 表示する文字（標準） ================================ */
-.switchArea label span:after{
+#ndHiddenBlocker .switchArea label span:after {
  content        : "OFF";               /* 表示する文字       */
  padding        : 0 0 0 28px;          /* 表示する位置       */
  color          : rgba(0, 0, 0, 0.36);             /* 文字色             */
 }
 
 /* === 表示する文字（ONのとき） ============================ */
-.switchArea  input[type="checkbox"]:checked + label span:after{
+#ndHiddenBlocker .switchArea input[type="checkbox"]:checked + label span:after {
  content        : "ON";                /* 表示する文字       */
  padding        : 0 28px 0 0;          /* 表示する位置       */
  color          : #6666ff;             /* 文字色             */
 }
 
 /* === 丸部分のSTYLE（標準） =============================== */
-.switchArea #swImg {
+#ndHiddenBlocker .switchArea #swImg {
  position       : absolute;            /* 親要素からの相対位置*/
  width          : 40px;                /* 丸の横幅           */
  height         : 40px;                /* 丸の高さ           */
@@ -62,23 +64,23 @@ body{
 }
 
 /* === 丸部分のSTYLE（ONのとき） =========================== */
-.switchArea input[type="checkbox"]:checked ~ #swImg {
+#ndHiddenBlocker .switchArea input[type="checkbox"]:checked ~ #swImg {
  transform      : translateX(66px);    /* 丸も右へ移動       */
  background     : #6666ff;             /* カーソルタブの背景 */
 }
 
-.text{
+#ndHiddenBlocker .text {
     text-align: center;
     font-size: medium;
     font-family: sans-serif;
 }
 
-.topBox{
+#ndHiddenBlocker .topBox {
     width: 200px;
     height: 40px;
     background     : #6666ff; 
 }
-.topText{
+#ndHiddenBlocker .topText {
     text-align: center;
     color: azure;
     font-size: large;

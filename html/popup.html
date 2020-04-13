@@ -5,39 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
     <link href='../css/popup.css' rel='stylesheet' type='text/css'>
-    <title>Document</title>
-
 </head>
 
-<body>
-
+<body id="ndHiddenBlocker">
     <div class="topBox">
         <div class="topText">
             ND hidden Blocker
         </div>
     </div>
 
-
     <div class="text">鍵ルームを非表示にする</div>
-    <div class="text">全てのルームを表示する</div>
-
     <div class="switchArea">
-        <input type="checkbox" id="swi1">
-        <label for="swi1"><span></span></label>
+        <input type="checkbox" id="cbLockedRoom">
+        <label for="cbLockedRoom"><span></span></label>
         <div id="swImg"></div>
     </div>
-    <div class="text">
+
+    <div class="text">満室ルームを非表示にする</div>
+    <div class="switchArea">
+        <input type="checkbox" id="cbNoVacancyRoom">
+        <label for="cbNoVacancyRoom"><span></span></label>
+        <div id="swImg"></div>
     </div>
+
     <script type="text/javascript" src="../js/jquery.js"></script>
-
     <script type="text/javascript" src="../js/popup.js"></script>
-
-<!-- 
-    <div class="text">ルームを全て表示する</div>
-    <div class="switchArea">
-        <input type="checkbox" id="switch2">
-        <label for="switch1"><span></span></label>
-        <div id="swImg"></div>
-    </div> -->
 </body>
 </html>
