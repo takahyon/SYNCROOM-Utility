@@ -26,6 +26,7 @@
         "matches": [
           "https://www.netduetto.net/room/"
         ],
+        "run_at":"document_start",
         "css": ["css/contents_style.css","css/popup.css"],
         "js": ["js/jquery.js",
             "js/popup.js",

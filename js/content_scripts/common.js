@@ -1,65 +1,128 @@
-window.onload = function(){
-    chrome.storage.sync.get(['ndb'], function (result) {
-        switch (result.ndb){
-            case true:
-                enable();
-                break;
-            case false:
-                disable();
-                break;
-            case undefined:
-                enable();
-                break;
-        }
-      });
-    //   オープンソースでアップしまーす!
+var jsonCheckFunc = `function drawRooms(idx,start,hidechkfunc,userdata){
+    var i;
+    if (idx < 0 || idx > 1)
+        return;
 
-    function enable(){
-        show_all();
-        remove_locked();
-        ObserveStream();
-     }
-     function disable() {
-         console.log("test")
-     }
+    for (i = start; i < nowRoom[idx]; i++) {
+		var _tit;
+		var _pnum;
+		var _users;
+		var _icon;
+		var _txt;
+		var _link;
+		var _rid;
+		var _pw;
+		var _txtstyle = "fBlack";
+
+		_tit = roomJson[idx][i].room_name;
+		_pnum = roomJson[idx][i].num_members;
+		_users = roomJson[idx][i].members.join(' / ');
+		if (roomJson[idx][i].room_desc) {
+			_icon =  '/common/img/roombox_icon_dummy.gif';
+			_txt = roomJson[idx][i].room_desc;
+		}else{
+			_icon = '/common/img/roombox_icon_dummy.gif';
+			_txt = 'ルームの説明がありません。';
+			_txtstyle = "fGray";
+		}
+		_rid = roomJson[idx][i].index;
+		_pw = roomJson[idx][i].need_passwd;
+		
+		var _bname = 'room_btn_off';
+		var _url;
+		var _oc,_oct ="";
+		if(_pw){
+			continue;
+			_bname = 'room_btn_lock_off';
+			_url = 'javascript:void(0)';
+			_oc = 'onClick="checkPW(roomJson['+idx+'][' + i + '],' + realms[idx] +', 2);"';
+			_oct = 'onClick="checkPW(roomJson['+idx+'][' + i + '],' + realms[idx] +', 3);"';
+        }else{
+			_url = 'javascript:void(0)';
+			_oc = 'onClick="openND(roomJson[' + idx + '][' + i + '],' + realms[idx] +', 2);"';
+			_oct = 'onClick="openND(roomJson['+idx+'][' + i + '],' + realms[idx] +', 3);"';
+        }
+		if(_pnum >= maxmembers[idx]) {
+			continue;
+			_bname = 'room_btn_kill';
+			_oc = '';
+		}
+		if(_tit === testRoomTitle)  {
+			if(hidechkfunc(userdata)) {
+				$('#moreroom').hide();
+				$('#containerRoom .noroom').hide();
+			}
+			if(nowRoom[idx] < roomNum[idx]) nowRoom[idx]++;
+			testRoomFound[idx] = true;
+			continue;
+		}
+
+		var tagelem = '<div class="tagarea">';
+		var tags = getTagInfo(roomJson[idx][i]);
+		var j;
+		for (j = 0; j < tags.length; j++) {
+            tagelem += '<div class="roomtag">'+escHTML(tags[j])+'</div>';
+		}
+		tagelem += '</div>';
+
+		var trialelem = "";
+		if (idx == 0) {
+		    trialelem = '<div class="trialarea"><button class="trialbtn" type="button"' + _oct + '>仮入室</button></div>';
+
+		}
+
+		var listObj = 
+		'<li class="roomItem">'+
+		'<div class="detailsBox">'+
+		'<p class="tit">' + escHTML(_tit) + '</p>'+
+		'<div class="txtBox">'+
+		'<p class="txt ' + _txtstyle /* escHTML対象外 */ + '">' + escHTML(_txt) + '</p>' + tagelem + trialelem +
+		'</div>' + 
+		'<p class="people">現在 ' + parseInt(_pnum,10) + '名</p>'+
+		'<p class="user"><span>参加者：</span>' + escHTML(_users) + '</p>'+
+		'</div>'+
+		'<p class="btn"><a href="' + escHTML(_url) + '" ' + _oc /* escHTML対象外 */
+			+ '><img src="img/' + escHTML(_bname) + '.jpg" alt="ルームに入る" width="194" height="60"></a></p>'+
+		'</li>';
+		
+		$('#containerRoom ul').append(listObj);
+	}
+	show_all();
 }
 function show_all(){
-    for (  var i = 0;  i < 10;  i++  ) {
-        document.getElementById("moreroom").click();
-       }
+	//消えるまでクリック
+	while($('#moreroom').css("display") != "none"){
+		$('#moreroom').click();
+	}
 }
+`;
+$(function(){
+	chrome.storage.sync.get(['ndb'], function (result) {
+	    switch (result.ndb){
+	        case true:
+	            enable();
+	            break;
+	        case false:
+	            disable();
+	            break;
+	        case undefined:
+	            enable();
+	            break;
+	    }
+	});
+	//   オープンソースでアップしまーす!
+	function enable(){
+		remove_locked();
+	}
+	function disable() {
+		console.log("test")
+		
+	}
+});
 
 function remove_locked() {
-    const base_url = "https://www.netduetto.net/room/img/"
-
-    const room_kill = base_url + "room_btn_kill.jpg"
-    const lock_room_on = base_url + "room_btn_lock_on.jpg"
-    const lock_room_off = base_url + "room_btn_lock_off.jpg"
-    
-    var rawRoomItem = $(".roomItem")
-    var roomItem = Array.from(rawRoomItem)
-    
-    roomItem.forEach(room => {
-        var img_src = room.getElementsByClassName("btn")[0].getElementsByTagName("a")[0].getElementsByTagName("img")[0].src;
-        this.console.log(img_src)
-        if(img_src == room_kill||img_src == lock_room_on||img_src == lock_room_off){
-            room.remove()
-            this.console.log('removed:'+room.innerText)
-        }
-    });
+	//DOM生成関数を上書き
+	$("body").append($("<script>").text(jsonCheckFunc));
 }
-
-function ObserveStream(){
-    var observer = new MutationObserver(remove_locked);
-    observer.observe(document.getElementsByClassName('roomBox')[0], {
-        attributes: true,
-        childList:  true
-    });
-    remove_locked();
-} 
-var observer = new MutationObserver(ObserveStream);
-observer.observe(document.body, {
-    attributes: true
-});
 
 
