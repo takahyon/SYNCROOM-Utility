@@ -1,3 +1,4 @@
+
 var jsonCheckFunc = `function drawRooms(idx,start,hidechkfunc,userdata){
     var i;
     if (idx < 0 || idx > 1)
@@ -106,7 +107,7 @@ $(function(){
 	            disable();
 	            break;
 	        case undefined:
-	            enable();
+	            //enable();
 	            break;
 	    }
 	});
