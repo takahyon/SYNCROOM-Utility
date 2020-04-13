@@ -12,7 +12,6 @@ window.onload = function(){
                 break;
         }
       });
-    //   オープンソースでアップしまーす!
 
     function enable(){
         show_all();
