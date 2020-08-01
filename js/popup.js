@@ -102,75 +102,83 @@ function onClickRegiteredTag() {
  */
 let isFirstTime = true;
 function filterRoomBox(conditions) {
-    if (!$('#moreroom').length) { return; }
-    let intervalId = setInterval(function () {
 
-        // あらかじめすべての部屋分の DOM を生成しておく
-        // 消えるまでクリック (1 [msec] 置き)
-        if ($('#moreroom').css("display") != "none") {
-            $('#moreroom').click();
-            return;
-        }
+    // lockedRoom - 鍵付き部屋をフィルター 仮
+    let checked =  $("#cond-status-private").prop("checked")
+    console.log(checked)
+    if (conditions[EID_CHECKBOX_LOCKEDROOM] && checked) {
+        $("#cond-status-private").trigger("click")
+    }
+
+    // roomsInnerを一覧として
+    let roomList = $("#macy-container .roomsInner")
+    //console.log(roomList)
+
+    if (!roomList.length) { return; }
+    let intervalId = setInterval(function () {
 
         clearInterval(intervalId);
 
         // for sorting
         let highPriorityRooms = [];
 
-        $('.roomItem').each(function (index, element) {
 
-            // lockedRoom - 鍵付き部屋をフィルター
-            if (conditions[EID_CHECKBOX_LOCKEDROOM]) {
-                const imgPath = $(element).find('img').prop('src');
-                if (imgPath.match(/_lock/)) {
-                    $(element).css('display', 'none');
-                    return;
-                }
-            }
+        roomList.each(function (index, element) {
+            // // lockedRoom - 鍵付き部屋をフィルター
+            // if (conditions[EID_CHECKBOX_LOCKEDROOM]) {
+            //     if (!$(element).hasClass("enterable")) {
+            //     $(element).css('display', 'none');
+            //         return;
+            //     }
+            // }
 
-            // noVacancyRoom - 満員部屋をフィルター
-            if (conditions[EID_CHECKBOX_NO_VACANCY_ROOM]) {
-                const peopleStr = $(element).find('p.people').text();
-                const peopleNum = parseInt(peopleStr.replace(/[^0-9]/g, ''));
-                if (peopleNum === PEOPLE_MAX) {
-                    $(element).css('display', 'none');
-                    return;
-                }
-            }
+            // // noVacancyRoom - 満員部屋をフィルター
+            // if (conditions[EID_CHECKBOX_NO_VACANCY_ROOM]) {
+            //     if (!$(element).hasClass("enterable")) {
+            //         $(element).css('display', 'none');
+            //         return;
+            //     }
+            // }
 
-            // listTag - 登録タグのついている部屋を上位に表示
+            // TODO listTag - 登録タグのついている部屋を上位に表示
             const listTagCondition = conditions[EID_LIST_TAG];
-            if (listTagCondition) {
-                if ($(element).data('sorted')) {
-                    // 既にソートされた Room は何もしない
-                } else {
-                    // まだソートされていない Room
-                    let containsAtLeastOne = false; // 該当タグが最低 1 つ含まれているか
-                    const roomTagElems = $(element).find('.roomtag');
-                    for (let i = 0; i < roomTagElems.length; i++) {
-                        const roomTagElem = $(roomTagElems[i]);
-                        const targetTag = roomTagElem.text();
-                        listTagCondition.forEach(tag => {
-                            if (targetTag.indexOf(tag) !== -1) {
-                                containsAtLeastOne = true;
-                                roomTagElem.css('border-color', '#ff1493');
-                                return;
-                            }
-                        });
-                    }
-                    if (containsAtLeastOne) {
-                        // ソート対称
-                        highPriorityRooms.unshift(element)
-                        $(element).data('sorted', 1);
-                    } else {
-                        // ソート非対称
-                        $(element).data('sorted', 0);
-                    }
-                }
-            }
+            // if (listTagCondition && $("#cond-keyword").val()==="") {
+            //     console.log(listTagCondition[0])
+            //     $("#cond-keyword").val(listTagCondition[0])
+            // }
+
+
+            // if (listTagCondition) {
+            //     if ($(element).data('sorted')) {
+            //         // 既にソートされた Room は何もしない
+            //     } else {
+            //         // まだソートされていない Room
+            //         let containsAtLeastOne = false; // 該当タグが最低 1 つ含まれているか
+            //         const roomTagElems = $(element).find('.genre');
+            //         for (let i = 0; i < roomTagElems.length; i++) {
+            //             const roomTagElem = $(roomTagElems[i]);
+            //             const targetTag = roomTagElem.text();
+            //             listTagCondition.forEach(tag => {
+            //                 if (targetTag.indexOf(tag) !== -1) {
+            //                     containsAtLeastOne = true;
+            //                     roomTagElem.css('border-color', '#ff1493');
+            //                     return;
+            //                 }
+            //             });
+            //         }
+            //         if (containsAtLeastOne) {
+            //             // ソート対称
+            //             highPriorityRooms.unshift(element)
+            //             $(element).data('sorted', 1);
+            //         } else {
+            //             // ソート非対称
+            //             $(element).data('sorted', 0);
+            //         }
+            //     }
+            // }
         });
 
-        const roomBox = $('#containerRoom > ul')[0];
+        const roomBox = roomList[0]; 
         for (let i = 0; i < highPriorityRooms.length; i++) {
             // 先頭に移動
             $(roomBox).prepend(highPriorityRooms[i]);
