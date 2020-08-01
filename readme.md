@@ -1,5 +1,5 @@
-# ND-Visible
-"description": "Netduettoの非公開ルームをルームから除去します。 Netduetto extension for remove unvisible rooms from room list.",
+# SYNCROOM-utility
+"SYNCROOMの非公開ルームをルームから除去します。 Netduetto extension for remove unvisible rooms from room list.",
 
 # Chrome Web Store
 https://chrome.google.com/webstore/detail/nd-remove-unvisible/kidafnplboigcfammdmmbabmjfdgeimh
