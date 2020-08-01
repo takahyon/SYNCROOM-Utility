@@ -1,8 +1,8 @@
 {
     "manifest_version": 2,
-    "name": "ND-remove-unvisible",
-    "description": "Netduettoの非公開ルームをルームから除去します。 Netduetto extension for remove unvisible rooms from room list.",
-    "version": "2.2.0",
+    "name": "SYNCROOM-utility",
+    "description": "SYNCROOMのプレイヤーズサイトを便利にします！",
+    "version": "3.0.0",
     "icons": {
       "16": "icon_16.png"
     },
@@ -19,13 +19,13 @@
         "48": "icon_48.png",
         "128": "icon_128.png"
       },
-      "default_title": "ND-remove-unvisible",
+      "default_title": "syncroom-utility",
       "default_popup": "html/popup.html"
     },
     "content_scripts": [
       {
         "matches": [
-          "https://www.netduetto.net/room/"
+          "https://syncroom.yamaha.com/play/"
         ],
         "run_at": "document_idle",
         "css": ["css/popup.css"],
