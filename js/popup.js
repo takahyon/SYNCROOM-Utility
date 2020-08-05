@@ -3,6 +3,7 @@
 const PEOPLE_MAX = 5;
 const EID_CHECKBOX_LOCKEDROOM = 'cbLockedRoom'
 const EID_CHECKBOX_NO_VACANCY_ROOM = 'cbNoVacancyRoom'
+const EID_CHECKBOX_LEGACY_STYLE = 'cbLegacyStyle'
 const EID_TEXT_REGISTER = 'textRegister'
 const EID_BUTTON_REGISTER = 'btnRegister'
 const EID_LIST_TAG = 'listTag'
@@ -97,99 +98,109 @@ function onClickRegiteredTag() {
 }
 
 /**
+ * 説明文にカーソルが合ったときのイベント
+ */
+function onMouseOverDescription() {
+    // マウスオーバーで全文表示
+    $(this).attr('title', $(this).text());
+}
+
+/**
+ * タグリストにカーソルが合ったときのイベント
+ */
+function onMouseOverGenre() {
+    // マウスオーバーで全タグ表示
+    const text = $(this).html()
+        .replace(/\s\/\s/g, '0/0')
+        .replace(/\s+/g, '')
+        .replace(/<\/li><li>/g, ' / ')
+        .replace('<li>', '')
+        .replace('</li>', '')
+        .replace(/0\/0/g, ' / ')
+        .replace(/&amp;/g, '&');
+    $(this).attr('title', text);
+}
+
+/**
  * DOM を編集して部屋のリストを絞り込む
  * @param {Object} conditions
  */
-let isFirstTime = true;
+let canUpdate = true;
 function filterRoomBox(conditions) {
 
+    // 最適化のため同一フレーム内の呼び出しは無視
+    if (!canUpdate) { return; }
+    canUpdate = false;
+
     // lockedRoom - 鍵付き部屋をフィルター 仮
-    let checked =  $("#cond-status-private").prop("checked")
-    console.log(checked)
+    let checked =  $("#cond-status-private").prop("checked");
     if (conditions[EID_CHECKBOX_LOCKEDROOM] && checked) {
-        $("#cond-status-private").trigger("click")
+        $("#cond-status-private").trigger("click");
+    }
+
+    // legacyStyle - NETDUETTO 風のリスト表示
+    const lockIconClone = $('#icon-lock').clone();
+    if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
+        // CSS で補える範囲は CSS で済ませる
+        $('body').addClass('legacyStyle');
     }
 
     // roomsInnerを一覧として
-    let roomList = $("#macy-container .roomsInner")
-    //console.log(roomList)
-
+    const roomList = $("#macy-container .roomsInner")
     if (!roomList.length) { return; }
-    let intervalId = setInterval(function () {
 
-        clearInterval(intervalId);
+    roomList.each(function (index, element) {
 
-        // for sorting
-        let highPriorityRooms = [];
-
-
-        roomList.each(function (index, element) {
-            // // lockedRoom - 鍵付き部屋をフィルター
-            // if (conditions[EID_CHECKBOX_LOCKEDROOM]) {
-            //     if (!$(element).hasClass("enterable")) {
-            //     $(element).css('display', 'none');
-            //         return;
-            //     }
-            // }
-
-            // // noVacancyRoom - 満員部屋をフィルター
-            // if (conditions[EID_CHECKBOX_NO_VACANCY_ROOM]) {
-            //     if (!$(element).hasClass("enterable")) {
-            //         $(element).css('display', 'none');
-            //         return;
-            //     }
-            // }
-
-            // TODO listTag - 登録タグのついている部屋を上位に表示
-            const listTagCondition = conditions[EID_LIST_TAG];
-            // if (listTagCondition && $("#cond-keyword").val()==="") {
-            //     console.log(listTagCondition[0])
-            //     $("#cond-keyword").val(listTagCondition[0])
-            // }
-
-
-            // if (listTagCondition) {
-            //     if ($(element).data('sorted')) {
-            //         // 既にソートされた Room は何もしない
-            //     } else {
-            //         // まだソートされていない Room
-            //         let containsAtLeastOne = false; // 該当タグが最低 1 つ含まれているか
-            //         const roomTagElems = $(element).find('.genre');
-            //         for (let i = 0; i < roomTagElems.length; i++) {
-            //             const roomTagElem = $(roomTagElems[i]);
-            //             const targetTag = roomTagElem.text();
-            //             listTagCondition.forEach(tag => {
-            //                 if (targetTag.indexOf(tag) !== -1) {
-            //                     containsAtLeastOne = true;
-            //                     roomTagElem.css('border-color', '#ff1493');
-            //                     return;
-            //                 }
-            //             });
-            //         }
-            //         if (containsAtLeastOne) {
-            //             // ソート対称
-            //             highPriorityRooms.unshift(element)
-            //             $(element).data('sorted', 1);
-            //         } else {
-            //             // ソート非対称
-            //             $(element).data('sorted', 0);
-            //         }
-            //     }
-            // }
-        });
-
-        const roomBox = roomList[0]; 
-        for (let i = 0; i < highPriorityRooms.length; i++) {
-            // 先頭に移動
-            $(roomBox).prepend(highPriorityRooms[i]);
+        if ($(element).data('filtered')) {
+            //////////////////////////////////////////////
+            // 既にフィルターが適用された Room は何もしない
+            return;
         }
 
-        if (isFirstTime) {
-            console.log('RoomBox was filtered.');
-            isFirstTime = false;
+        //////////////////////////////////////////////
+        // legacyStyle - NETDUETTO 風のリスト表示
+        // 参加者の表記を ND 時代に戻す
+        if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
+            const peopleElem = $(element).find('.people');
+            const peopleElemText = peopleElem.text();
+            const actualPeopleElemText = peopleElemText.replace(/[0-9]名▶/, '').replace(/(参加者：)/, '<strong>$1</strong>');
+            peopleElem.html(actualPeopleElemText);
+
+            // 右上の人数表記
+            const peopleCountText = '現在 ' + peopleElemText.substr(4, 2);
+            $(element).find('.roomsDetails').append('<div class="peopleCount">' + peopleCountText + '</div>');
+
+            // 説明文をマウスオーバーで全文表示
+            $(element).find('.description').mouseover(onMouseOverDescription);
+
+            // タグをマウスオーバーで全文表示
+            $(element).find('.genre').mouseover(onMouseOverGenre);
+
+            const enterButtonElem = $(element).find('.roomIn a.enter');
+            if ($(element).hasClass('lock')) {
+                // ロックアイコンの追加
+                enterButtonElem.prepend(
+                    '<svg width="13" height="13" viewBox="0 0 20 22" style="margin: 0 15px 0 -10px">' +
+                    lockIconClone.html() +
+                    '</svg>'
+                );
+            } else {
+                // 再生アイコン
+                enterButtonElem.prepend(
+                    '<svg width="11" height="11" style="margin: 0 15px 0 -10px">' +
+                    '<path d="M0 0 L8 6 L0 11 Z"></path>' +
+                    '</svg>'
+                );
+            }
         }
 
-    }, 1);
+        //////////////////////////////////////////////
+        // フィルター済みを記録する
+        $(element).data('filtered', 1);
+    });
+
+    console.log('Filtered rooms at ' + (new Date()).getTime());
+    setTimeout(function () { canUpdate = true; }, 1);
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -203,6 +214,7 @@ $(function () {
     const storageKeys = [
         EID_CHECKBOX_LOCKEDROOM,
         EID_CHECKBOX_NO_VACANCY_ROOM,
+        EID_CHECKBOX_LEGACY_STYLE,
         EID_LIST_TAG
     ];
 
@@ -214,7 +226,7 @@ $(function () {
         LocalStorageCache = result;
 
         // 各チェックボックスの初期化
-        [EID_CHECKBOX_LOCKEDROOM, EID_CHECKBOX_NO_VACANCY_ROOM].forEach(elemId => {
+        [EID_CHECKBOX_LOCKEDROOM, EID_CHECKBOX_NO_VACANCY_ROOM, EID_CHECKBOX_LEGACY_STYLE].forEach(elemId => {
 
             // 対象の条件を false で初期化
             filterConditions[elemId] = false;
@@ -253,9 +265,10 @@ $(function () {
         // 実際に指定された条件で部屋のリストをフィルターする
         filterRoomBox(filterConditions);
 
-        // 非同期更新用に 200 [sec] 毎にフィルターをかけなおすようにしておく
-        setInterval(function () {
+        // 非同期更新用に監視しつつフィルターを適用する
+        filterRoomBox(filterConditions);
+        $('body').on('DOMSubtreeModified', '#macy-container .roomsInner', function () {
             filterRoomBox(filterConditions);
-        }, 200);
+        });
     });
 });

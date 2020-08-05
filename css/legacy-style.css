@@ -1,0 +1,174 @@
+.legacyStyle .contentsBody {
+  width: 100%;
+}
+
+.legacyStyle .roomRows .roomsInner {
+  width: 216px !important;
+  max-width: 216px;
+  height: 265px;
+  font-family: "ヒラギノ角ゴ ProN W3", "Hiragino Kaku Gothic ProN", "メイリオ", Meiryo, sans-serif;
+  line-height: 0;
+  margin: 0 15px 10px 0;
+  padding: 0;
+  display: inline-block;
+  position: relative !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
+.legacyStyle .roomRows .roomsInner .roomsDetails {
+  float: left;
+  padding: 18px 18px 30px;
+  box-shadow: 0 0 4px 2px rgba(0,0,0,0.2);
+  box-sizing: content-box;
+
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  vertical-align: top;
+}
+
+.legacyStyle .roomRows .roomsInner .roomsDetails .ttl {
+  float: left;
+  font-size: 12px;
+  width: 130px;
+  height: 35px;
+  font-size: 12px;
+  font-weight: bold;
+  overflow-y: auto;
+  overflow-x: hidden;
+  line-height: 1.6;
+  z-index: 5;
+
+  -webkit-box-ordinal-group: 1;
+  -ms-flex-order: 1;
+  -webkit-order: 1;
+  order: 1;
+}
+
+.legacyStyle .roomRows .roomsInner .roomsDetails .genre {
+  position: relative;
+  float: left;
+  left: -10px;
+  width: 150px;
+  height: 46px;
+  text-align: right;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+
+  -webkit-box-ordinal-group: 3;
+  -ms-flex-order: 3;
+  -webkit-order: 3;
+  order: 3;
+}
+
+.legacyStyle .roomRows .roomsInner .roomsDetails .genre > li,
+.legacyStyle .roomRows .roomsInner .roomsDetails .genre > li:not(:last-of-type) {
+  overflow: hidden;
+  font-size: 10px;
+  margin: 1px 2px 1px 0;
+  padding: 3px 4px 2px;
+  word-wrap: break-word;
+  border: 2px solid #312dc2;
+  border-radius: 5px;
+  background: white;
+}
+
+.legacyStyle .roomRows .roomsInner .roomsDetails .description {
+  float: left;
+  font-size: 10px;
+  line-height: 1.6;
+  width: 180px;
+  height: 70px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-top: 5px;
+
+  -webkit-box-ordinal-group: 2;
+  -ms-flex-order: 2;
+  -webkit-order: 2;
+  order: 2;
+}
+
+.legacyStyle .roomRows .roomsInner .roomsDetails .people {
+  float: left;
+  font-size: 10px;
+  color: #555555;
+  width: 180px;
+  height: 22px;
+  padding: 7px 0 0 0;
+  border-top: 2px solid #DDE0F2;
+  line-height: 110%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-weight: normal;
+  margin: 0;
+
+  -webkit-box-ordinal-group: 4;
+  -ms-flex-order: 4;
+  -webkit-order: 4;
+  order: 4;
+}
+
+.legacyStyle .roomRows .roomsInner .roomsDetails .people strong {
+  font-weight: bold;
+}
+
+.legacyStyle .roomRows .roomsInner .roomsDetails .peopleCount {
+  font-size: 11px;
+  font-weight: bold;
+  position: absolute;
+  right: 18px;
+  top: 26px;
+  z-index: 10;
+}
+
+.legacyStyle .roomRows .roomsInner .roomIn {
+  background-color: transparent;
+  position: relative;
+}
+
+.legacyStyle .roomRows .roomsInner .roomIn .provisional {
+  position: absolute;
+  top: 75px;
+  left: 154px;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  font-size: 10px;
+  border-radius: 5px;
+  font-weight: normal;
+}
+
+.legacyStyle .roomRows .roomsInner .roomIn .enter {
+  position: absolute;
+  box-sizing: border-box;
+  top: 152px;
+  left: 8px;
+  height: 45px;
+  background: #312dc2;
+  width: 180px;
+  z-index: 10;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 4px 2px rgba(0,0,0,0.2);
+  font-size: 14px;
+}
+
+.legacyStyle .roomRows .roomsInner .roomIn .enter:hover {
+  opacity: 1.0;
+  background: #544fe0;
+}
+
+.legacyStyle .roomRows .roomsInner.enterunable .roomIn .enter {
+  opacity: 1.0;
+  background: #cccccc;
+}
+
+.legacyStyle .roomRows .roomsInner.lock:before {
+  display: none;
+}

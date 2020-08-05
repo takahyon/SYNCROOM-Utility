@@ -28,7 +28,10 @@
           "https://syncroom.yamaha.com/play/"
         ],
         "run_at": "document_idle",
-        "css": ["css/popup.css"],
+        "css": [
+          "css/popup.css",
+          "css/legacy-style.css"
+        ],
         "js": [
           "js/jquery.js",
           "js/popup.js"

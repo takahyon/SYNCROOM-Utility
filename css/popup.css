@@ -1,7 +1,7 @@
 #ndHiddenBlocker {
   margin        : 0px;
   width         : 240px;
-  background    : #DDE0F1;                /* デフォルト背景色   */
+  background    : #dbe4ff;                /* デフォルト背景色   */
   font-family   : "ヒラギノ角ゴ ProN W3", "Hiragino Kaku Gothic ProN", "メイリオ", Meiryo, sans-serif;
 }
 
@@ -14,7 +14,7 @@
 #ndHiddenBlocker .topBox {
   width         : 240px;
   height        : 40px;
-  background    : #255fcc; 
+  background    : #5074f5; 
 }
 #ndHiddenBlocker .topText {
   text-align    : center;
@@ -51,21 +51,24 @@
 #ndHiddenBlocker .switchArea label {
   display           : block;            /* ボックス要素に変更 */
   box-sizing        : border-box;       /* 枠線を含んだサイズ */
-  height            : 30px;             /* ボタンの高さ       */
-  border-radius     : 15px;             /* 角丸               */
+  height            : 35px;             /* ボタンの高さ       */
   border-width      : 0;
   cursor            : pointer;
-  padding           : 7px 15px;
+  padding           : 8px 15px;
   background-color  : transparent;
   letter-spacing    : 0.04rem;
   user-select       : none;
+  border: solid 1px #fff;
+  border-radius: 4px;
+  color: #fff;
+  background-color: #ccc;
 }
 
 /* === チェックボックスのラベル（ONのとき） ================ */
 #ndHiddenBlocker .switchArea input[type="checkbox"]:checked +label {
-  background-color  :  #726C9F;
+  background-color  : #312dc2;
   color             : white;
-  box-shadow        : 0px 2px 5px 2px rgba(0, 0, 0, 0.36) inset;
+  /* box-shadow        : 0px 2px 5px 2px rgba(0, 0, 0, 0.36) inset; */
 }
 
 /* === タグ登録エリア ============================== */
