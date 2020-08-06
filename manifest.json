@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "name": "SYNCROOM-utility",
     "description": "SYNCROOMのプレイヤーズサイトを便利にします！",
-    "version": "4.0.0",
+    "version": "4.0.3",
     "icons": {
       "16": "icon_16.png"
     },
@@ -25,7 +25,7 @@
     "content_scripts": [
       {
         "matches": [
-          "https://syncroom.yamaha.com/play/"
+          "https://syncroom.yamaha.com/play/*"
         ],
         "run_at": "document_idle",
         "css": ["css/popup.css"],
