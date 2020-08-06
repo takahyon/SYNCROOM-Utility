@@ -2,15 +2,12 @@
 // Constants and Global Variables
 const PEOPLE_MAX = 5;
 const EID_CHECKBOX_LOCKEDROOM = 'cbLockedRoom'
-const EID_CHECKBOX_NO_VACANCY_ROOM = 'cbNoVacancyRoom'
 const EID_CHECKBOX_LEGACY_STYLE = 'cbLegacyStyle'
-const EID_TEXT_REGISTER = 'textRegister'
-const EID_BUTTON_REGISTER = 'btnRegister'
-const EID_LIST_TAG = 'listTag'
 var LocalStorageCache = null;
 
 //////////////////////////////////////////////////////////////////////////////////
 // Convenience Functions
+
 /**
  * ローカルストレージに値を保存する
  * @param {string} key 
@@ -37,79 +34,28 @@ function reloadPage() {
 }
 
 /**
- * タグをリストに追加 (見た目だけ)
- * @param {String} tag 
- */
-function addTagToList(tag) {
-    $(`#${EID_LIST_TAG}`).append(`<li data-tag="${tag}" onclick>${tag}</ul>`);
-}
-
-/**
  * チェックボックスの状態が変更されたときのイベント
+ * Local Storage を更新してページをリロード
  */
 function onChangedCheckboxStatus() {
-    // Local Storage を更新してページをリロード
     const key = $(this).attr('id');
     const value = $(this).prop("checked");
     setLocalStorageObject(key, value, reloadPage);
 }
 
 /**
- * タグ登録ボタンがクリックされたときのイベント
- */
-function onClickTagRegisterButton() {
-    const inputElem = $(`#${EID_TEXT_REGISTER}`);
-    const tag = inputElem.val();
-    if (!tag) { return; }
-
-    // テキストフィールドの中を空にする
-    inputElem.val('');
-
-    // ul 要素を追加（タグリスト）
-    addTagToList(tag);
-
-    // Local Storage にタグを保存
-    let tagsArray = LocalStorageCache[EID_LIST_TAG];
-    if (!tagsArray) { tagsArray = []; }
-    if (tagsArray.indexOf(tag) === -1) {
-        tagsArray.push(tag);
-    }
-    setLocalStorageObject(EID_LIST_TAG, tagsArray, reloadPage);
-}
-
-/**
- * 登録済みタグがクリックされたときのイベント
- */
-function onClickRegiteredTag() {
-    const tag = $(this).data('tag');
-    if (!tag) { return; }
-
-    // タグをリストから削除
-    $(this).remove();
-
-    // Local Storage からタグを削除
-    let tagsArray = LocalStorageCache[EID_LIST_TAG];
-    if (!tagsArray) { tagsArray = []; }
-    const indexToRemove = tagsArray.indexOf(tag);
-    if (indexToRemove !== -1) {
-        tagsArray.splice(indexToRemove, 1);
-    }
-    setLocalStorageObject(EID_LIST_TAG, tagsArray, reloadPage);
-}
-
-/**
  * 説明文にカーソルが合ったときのイベント
+ * マウスオーバーで全文表示
  */
 function onMouseOverDescription() {
-    // マウスオーバーで全文表示
     $(this).attr('title', $(this).text());
 }
 
 /**
  * タグリストにカーソルが合ったときのイベント
+ * マウスオーバーで全タグ表示
  */
 function onMouseOverGenre() {
-    // マウスオーバーで全タグ表示
     const text = $(this).html()
         .replace(/\s\/\s/g, '0/0')
         .replace(/\s+/g, '')
@@ -126,7 +72,7 @@ function onMouseOverGenre() {
  * @param {Object} conditions
  */
 let canUpdate = true;
-function filterRoomBox(conditions) {
+function updateMacyContainer(conditions) {
 
     // 最適化のため同一フレーム内の呼び出しは無視
     if (!canUpdate) { return; }
@@ -205,17 +151,16 @@ function filterRoomBox(conditions) {
 
 //////////////////////////////////////////////////////////////////////////////////
 // Initializer
+
 $(function () {
 
     // 対応するフィルター条件
-    let filterConditions = {};
+    let conditions = {};
 
     // 初期化要素に関連した Local Storage のキー
     const storageKeys = [
         EID_CHECKBOX_LOCKEDROOM,
-        EID_CHECKBOX_NO_VACANCY_ROOM,
         EID_CHECKBOX_LEGACY_STYLE,
-        EID_LIST_TAG
     ];
 
     // Local Storage から直近の値を取得して View を更新
@@ -226,10 +171,10 @@ $(function () {
         LocalStorageCache = result;
 
         // 各チェックボックスの初期化
-        [EID_CHECKBOX_LOCKEDROOM, EID_CHECKBOX_NO_VACANCY_ROOM, EID_CHECKBOX_LEGACY_STYLE].forEach(elemId => {
+        [EID_CHECKBOX_LOCKEDROOM, EID_CHECKBOX_LEGACY_STYLE].forEach(elemId => {
 
             // 対象の条件を false で初期化
-            filterConditions[elemId] = false;
+            conditions[elemId] = false;
 
             // 直近の値が未設定なら初期値として true をセット
             let localStorageVal = result[elemId];
@@ -244,31 +189,16 @@ $(function () {
             // チェックボックスの状態が変わったときのイベントをバインド
             $(`#${elemId}`).change(onChangedCheckboxStatus);
 
-            // フィルターすべき条件を整理する
-            filterConditions[elemId] = localStorageVal;
+            // 条件を整理する
+            conditions[elemId] = localStorageVal;
         });
 
-        // タグリストの初期化
-        const savedTagList = result[EID_LIST_TAG];
-        filterConditions[EID_LIST_TAG] = [];
-        if (savedTagList) {
-            savedTagList.forEach(tag => { addTagToList(tag); });
-            filterConditions[EID_LIST_TAG] = savedTagList;
-        }
-
-        // タグ登録ボタンのイベントをバインド 
-        $(`#${EID_BUTTON_REGISTER}`).on('click', onClickTagRegisterButton);
-
-        // ul 要素（タグリスト）のイベントをバインド
-        $(document).on("click", `#${EID_LIST_TAG} li`, onClickRegiteredTag);
-
         // 実際に指定された条件で部屋のリストをフィルターする
-        filterRoomBox(filterConditions);
+        updateMacyContainer(conditions);
 
         // 非同期更新用に監視しつつフィルターを適用する
-        filterRoomBox(filterConditions);
         $('body').on('DOMSubtreeModified', '#macy-container .roomsInner', function () {
-            filterRoomBox(filterConditions);
+            updateMacyContainer(conditions);
         });
     });
 });
