@@ -91,11 +91,8 @@ function updateMacyContainer(conditions) {
         $('body').addClass('legacyStyle');
     }
 
-    // roomsInnerを一覧として
-    const roomList = $("#macy-container .roomsInner")
-    if (!roomList.length) { return; }
-
-    roomList.each(function (index, element) {
+    // roomsInner 毎に適用する処理
+    const updateRoomsInner = function(index, element) {
 
         if ($(element).data('filtered')) {
             //////////////////////////////////////////////
@@ -143,7 +140,16 @@ function updateMacyContainer(conditions) {
         //////////////////////////////////////////////
         // フィルター済みを記録する
         $(element).data('filtered', 1);
-    });
+    }
+
+    // for 接続テストルーム
+    updateRoomsInner(0, $("#testroom-container .roomsInner"));
+
+    // for メインリスト
+    const roomList = $("#macy-container .roomsInner")
+    if (roomList.length) {
+        roomList.each(updateRoomsInner);
+    }
 
     console.log('Filtered rooms at ' + (new Date()).getTime());
     setTimeout(function () { canUpdate = true; }, 1);
@@ -197,7 +203,7 @@ $(function () {
         updateMacyContainer(conditions);
 
         // 非同期更新用に監視しつつフィルターを適用する
-        $('body').on('DOMSubtreeModified', '#macy-container .roomsInner', function () {
+        $('body').on('DOMSubtreeModified', '.roomsInner', function () {
             updateMacyContainer(conditions);
         });
     });
