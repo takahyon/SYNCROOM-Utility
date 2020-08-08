@@ -3,13 +3,20 @@
 const PEOPLE_MAX = 5;
 const EID_CHECKBOX_LOCKEDROOM = 'cbLockedRoom'
 const EID_CHECKBOX_LEGACY_STYLE = 'cbLegacyStyle'
-var LocalStorageCache = null;
+
+let LocalStorageCache = null;
+let conditions = {};
+
+// for Legacy Style
+let lockIconClone = null;
+let onMouseOverDescription = null;
+let onMouseOverGenre = null;
 
 //////////////////////////////////////////////////////////////////////////////////
 // Convenience Functions
 
 /**
- * ローカルストレージに値を保存する
+ * Local Storage に値を保存する
  * @param {string} key 
  * @param {*} value 
  * @param {Function} func 
@@ -24,77 +31,112 @@ function setLocalStorageObject(key, value, func) {
 }
 
 /**
- * ページをリロードする
- */
-function reloadPage() {
-    chrome.tabs.getSelected(null, function (tab) {
-        const code = 'window.location.reload();';
-        chrome.tabs.executeScript(tab.id, { code: code });
-    });
-}
-
-/**
  * チェックボックスの状態が変更されたときのイベント
  * Local Storage を更新してページをリロード
+ * (popup 用, popup を廃止したら不要)
  */
 function onChangedCheckboxStatus() {
     const key = $(this).attr('id');
     const value = $(this).prop("checked");
-    setLocalStorageObject(key, value, reloadPage);
+    setLocalStorageObject(key, value, function () {
+        // リロードする
+        chrome.tabs.getSelected(null, function (tab) {
+            const code = 'window.location.reload();';
+            chrome.tabs.executeScript(tab.id, { code: code });
+        });
+    });
 }
 
 /**
- * 説明文にカーソルが合ったときのイベント
- * マウスオーバーで全文表示
+ * Local Storage の状態を見る前に、ウェブサイト側の DOM 上書き処理を行う
  */
-function onMouseOverDescription() {
-    $(this).attr('title', $(this).text());
+function preInitDOM() {
+
+    // 上書き用 CSS を適用
+    $('body').addClass('extension');
+
+    const onChangedCondition = function () {
+        // Local Storage を更新してページをリロード
+        const key = $(this).attr('id');
+        const value = $(this).prop("checked");
+        setLocalStorageObject(key, value, function () {
+            location.reload();
+        });
+    }
+
+    // 「レガシースタイル」ボタンの追加
+    const newConditionItem = $(`
+        <div class="conditionItem fz-14 fz-md-14 fw-700">
+            <input id="${EID_CHECKBOX_LEGACY_STYLE}" name="${EID_CHECKBOX_LEGACY_STYLE}" type="checkbox">
+            <label class="cond-checkbox" for="${EID_CHECKBOX_LEGACY_STYLE}" style="padding: 11px 15px;">
+                レガシースタイル
+            </label>
+        </div>
+    `);
+    $('.conditionList .conditionItem').eq(0).after(newConditionItem);
+    newConditionItem.ready(function() {
+        $(`#${EID_CHECKBOX_LEGACY_STYLE}`).change(onChangedCondition);
+    });
+
 }
 
 /**
- * タグリストにカーソルが合ったときのイベント
- * マウスオーバーで全タグ表示
- */
-function onMouseOverGenre() {
-    const text = $(this).html()
-        .replace(/\s\/\s/g, '0/0')
-        .replace(/\s+/g, '')
-        .replace(/<\/li><li>/g, ' / ')
-        .replace('<li>', '')
-        .replace('</li>', '')
-        .replace(/0\/0/g, ' / ')
-        .replace(/&amp;/g, '&');
-    $(this).attr('title', text);
-}
-
-/**
- * DOM を編集して部屋のリストを絞り込む
+ * Local Storage の状態にあわせて DOM を初期化する
  * @param {Object} conditions
  */
-let canUpdate = true;
-function updateMacyContainer(conditions) {
+function initDOM(conditions) {
 
-    // 最適化のため同一フレーム内の呼び出しは無視
-    if (!canUpdate) { return; }
-    canUpdate = false;
-
-    // lockedRoom - 鍵付き部屋をフィルター 仮
+    // Locked Room - 鍵付き部屋をフィルター 仮
     let checked =  $("#cond-status-private").prop("checked");
     if (conditions[EID_CHECKBOX_LOCKEDROOM] && checked) {
         $("#cond-status-private").trigger("click");
     }
 
-    // legacyStyle - NETDUETTO 風のリスト表示
-    const lockIconClone = $('#icon-lock').clone();
+    // Legacy Style - NETDUETTO 風のリスト表示
     if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
+
         // CSS で補える範囲は CSS で済ませる
         $('body').addClass('legacyStyle');
+
+        // ロックアイコンを取得 ( updateDOM で使用する )
+        lockIconClone = $('#icon-lock').clone();
+
+        // 各イベント関数を定義 ( updateDOM で使用する )
+        onMouseOverDescription = function () {
+            $(this).attr('title', $(this).text());
+        };
+        onMouseOverGenre = function () {
+            const text = $(this).html()
+                .replace(/\s\/\s/g, '0/0')
+                .replace(/\s+/g, '')
+                .replace(/<\/li><li>/g, ' / ')
+                .replace('<li>', '')
+                .replace('</li>', '')
+                .replace(/0\/0/g, ' / ')
+                .replace(/&amp;/g, '&');
+            $(this).attr('title', text);
+        };
     }
+
+    // 初回の更新
+    updateDOM(conditions);
+}
+
+/**
+ * 非同期通信でリストが更新されるたびに DOM を編集する
+ * @param {Object} conditions
+ */
+let canUpdate = true;
+function updateDOM(conditions) {
+
+    // 最適化のため同一フレーム内の呼び出しは無視
+    if (!canUpdate) { return; }
+    canUpdate = false;
 
     // roomsInner 毎に適用する処理
     const updateRoomsInner = function(index, element) {
 
-        if ($(element).data('filtered')) {
+        if ($(element).data('updated')) {
             //////////////////////////////////////////////
             // 既にフィルターが適用された Room は何もしない
             return;
@@ -102,8 +144,9 @@ function updateMacyContainer(conditions) {
 
         //////////////////////////////////////////////
         // legacyStyle - NETDUETTO 風のリスト表示
-        // 参加者の表記を ND 時代に戻す
         if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
+
+            // 参加者の表記を ND 時代に戻す
             const peopleElem = $(element).find('.people');
             const peopleElemText = peopleElem.text();
             const actualPeopleElemText = peopleElemText.replace(/[0-9]名▶/, '').replace(/(参加者：)/, '<strong>$1</strong>');
@@ -138,8 +181,8 @@ function updateMacyContainer(conditions) {
         }
 
         //////////////////////////////////////////////
-        // フィルター済みを記録する
-        $(element).data('filtered', 1);
+        // アップデート済みを記録する
+        $(element).data('updated', 1);
     }
 
     // for 接続テストルーム
@@ -151,7 +194,7 @@ function updateMacyContainer(conditions) {
         roomList.each(updateRoomsInner);
     }
 
-    console.log('Filtered rooms at ' + (new Date()).getTime());
+    console.log('Updated DOM at ' + (new Date()).getTime());
     setTimeout(function () { canUpdate = true; }, 1);
 }
 
@@ -160,8 +203,8 @@ function updateMacyContainer(conditions) {
 
 $(function () {
 
-    // 対応するフィルター条件
-    let conditions = {};
+    // ローカルストレージに依存しない DOM の初期化
+    preInitDOM();
 
     // 初期化要素に関連した Local Storage のキー
     const storageKeys = [
@@ -200,11 +243,11 @@ $(function () {
         });
 
         // 実際に指定された条件で部屋のリストをフィルターする
-        updateMacyContainer(conditions);
+        initDOM(conditions);
 
         // 非同期更新用に監視しつつフィルターを適用する
         $('body').on('DOMSubtreeModified', '.roomsInner', function () {
-            updateMacyContainer(conditions);
+            updateDOM(conditions);
         });
     });
 });

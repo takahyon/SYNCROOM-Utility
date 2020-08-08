@@ -30,7 +30,7 @@
         "run_at": "document_idle",
         "css": [
           "css/popup.css",
-          "css/legacy-style.css"
+          "css/website.css"
         ],
         "js": [
           "js/jquery.js",
