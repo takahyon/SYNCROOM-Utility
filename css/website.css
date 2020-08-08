@@ -4,6 +4,10 @@
   margin-right: 20px;
 }
 
+.extension .roomSetCondition .conditionList .conditionItem.addition input[type="checkbox"] + label {
+  padding: 11px 15px;
+}
+
 /* Legacy Style */
 
 .legacyStyle .contentsBody {
