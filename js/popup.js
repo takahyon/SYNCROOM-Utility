@@ -27,7 +27,9 @@ function setLocalStorageObject(key, value, func) {
     objToSet[key] = value;
     chrome.storage.sync.set(objToSet, function () {
         console.log(`Set an object to the local storage: { ${key} : ${value} }`);
-        func();
+        if (func) {
+            func();
+        }
     });
 }
 
@@ -60,7 +62,6 @@ function preInitDOM() {
     `);
     $('.conditionList .conditionItem').eq(0).after(newConditionItem);
     newConditionItem.ready(function() {
-        $(`#${EID_CHECKBOX_LEGACY_STYLE}`).prop('checked', conditions[EID_CHECKBOX_LEGACY_STYLE]);
         $(`#${EID_CHECKBOX_LEGACY_STYLE}`).change(function () {
             // Local Storage を更新してページをリロード
             const key = $(this).attr('id');
@@ -69,6 +70,10 @@ function preInitDOM() {
                 location.reload();
             });
         });
+        if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
+            // もし既に conditions が生成されていたら見た目を初期化
+            $(`#${EID_CHECKBOX_LEGACY_STYLE}`).prop('checked', true);
+        }
     });
 
 }
@@ -95,6 +100,9 @@ function initDOM(conditions) {
 
         // ロックアイコンを取得 ( updateDOM で使用する )
         lockIconClone = $('#icon-lock').clone();
+
+        // チェックボックスの見た目を更新
+        $(`#${EID_CHECKBOX_LEGACY_STYLE}`).prop('checked', true);
 
         // 各イベント関数を定義 ( updateDOM で使用する )
         onMouseOverDescription = function () {
