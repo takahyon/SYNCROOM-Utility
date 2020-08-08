@@ -1,7 +1,8 @@
 //////////////////////////////////////////////////////////////////////////////////
 // Constants and Global Variables
 const PEOPLE_MAX = 5;
-const EID_CHECKBOX_LOCKEDROOM = 'cbLockedRoom'
+const EID_CHECKBOX_LOCKEDROOM_PUBLIC = 'cond-status-public'
+const EID_CHECKBOX_LOCKEDROOM_PRIVATE = 'cond-status-private'
 const EID_CHECKBOX_LEGACY_STYLE = 'cbLegacyStyle'
 
 let LocalStorageCache = null;
@@ -31,38 +32,22 @@ function setLocalStorageObject(key, value, func) {
 }
 
 /**
- * チェックボックスの状態が変更されたときのイベント
- * Local Storage を更新してページをリロード
- * (popup 用, popup を廃止したら不要)
- */
-function onChangedCheckboxStatus() {
-    const key = $(this).attr('id');
-    const value = $(this).prop("checked");
-    setLocalStorageObject(key, value, function () {
-        // リロードする
-        chrome.tabs.getSelected(null, function (tab) {
-            const code = 'window.location.reload();';
-            chrome.tabs.executeScript(tab.id, { code: code });
-        });
-    });
-}
-
-/**
- * Local Storage の状態を見る前に、ウェブサイト側の DOM 上書き処理を行う
+ * Local Storage の状態を見る前に、DOM 上書き処理を行う
  */
 function preInitDOM() {
 
     // 上書き用 CSS を適用
     $('body').addClass('extension');
 
-    const onChangedCondition = function () {
-        // Local Storage を更新してページをリロード
-        const key = $(this).attr('id');
-        const value = $(this).prop("checked");
-        setLocalStorageObject(key, value, function () {
-            location.reload();
+    // 鍵部屋表示
+    [EID_CHECKBOX_LOCKEDROOM_PUBLIC, EID_CHECKBOX_LOCKEDROOM_PRIVATE].forEach(elemId => {
+        $(`#${elemId}`).change(function () {
+            // Local Storage を更新するだけ
+            const key = $(this).attr('id');
+            const value = $(this).prop("checked");
+            setLocalStorageObject(key, value);
         });
-    }
+    });
 
     // 「レガシースタイル」ボタンの追加
     const newConditionItem = $(`
@@ -75,22 +60,32 @@ function preInitDOM() {
     `);
     $('.conditionList .conditionItem').eq(0).after(newConditionItem);
     newConditionItem.ready(function() {
-        $(`#${EID_CHECKBOX_LEGACY_STYLE}`).change(onChangedCondition);
+        $(`#${EID_CHECKBOX_LEGACY_STYLE}`).prop('checked', conditions[EID_CHECKBOX_LEGACY_STYLE]);
+        $(`#${EID_CHECKBOX_LEGACY_STYLE}`).change(function () {
+            // Local Storage を更新してページをリロード
+            const key = $(this).attr('id');
+            const value = $(this).prop("checked");
+            setLocalStorageObject(key, value, function () {
+                location.reload();
+            });
+        });
     });
 
 }
 
 /**
- * Local Storage の状態にあわせて DOM を初期化する
+ * Local Storage の状態にあわせて、 DOM を初期化する
  * @param {Object} conditions
  */
 function initDOM(conditions) {
 
     // Locked Room - 鍵付き部屋をフィルター 仮
-    let checked =  $("#cond-status-private").prop("checked");
-    if (conditions[EID_CHECKBOX_LOCKEDROOM] && checked) {
-        $("#cond-status-private").trigger("click");
-    }
+    [EID_CHECKBOX_LOCKEDROOM_PUBLIC, EID_CHECKBOX_LOCKEDROOM_PRIVATE].forEach(elemId => {
+        // MEMO: ボタンの初期状態は checked なので false の時にクリックさせる
+        if (conditions[elemId] === false) { 
+            $(`#${elemId}`).trigger("click");
+        }
+    });
 
     // Legacy Style - NETDUETTO 風のリスト表示
     if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
@@ -123,7 +118,7 @@ function initDOM(conditions) {
 }
 
 /**
- * 非同期通信でリストが更新されるたびに DOM を編集する
+ * 非同期通信でリストが更新されるたびに、 DOM を編集する
  * @param {Object} conditions
  */
 let canUpdate = true;
@@ -208,7 +203,8 @@ $(function () {
 
     // 初期化要素に関連した Local Storage のキー
     const storageKeys = [
-        EID_CHECKBOX_LOCKEDROOM,
+        EID_CHECKBOX_LOCKEDROOM_PUBLIC,
+        EID_CHECKBOX_LOCKEDROOM_PRIVATE,
         EID_CHECKBOX_LEGACY_STYLE,
     ];
 
@@ -219,8 +215,8 @@ $(function () {
 
         LocalStorageCache = result;
 
-        // 各チェックボックスの初期化
-        [EID_CHECKBOX_LOCKEDROOM, EID_CHECKBOX_LEGACY_STYLE].forEach(elemId => {
+        // conditions に変換
+        storageKeys.forEach(elemId => {
 
             // 対象の条件を false で初期化
             conditions[elemId] = false;
@@ -232,17 +228,11 @@ $(function () {
                 setLocalStorageObject(elemId, true);
             }
 
-            // チェックボックスの見た目を Local Storage の値に合わせる
-            $(`#${elemId}`).prop('checked', localStorageVal);
-
-            // チェックボックスの状態が変わったときのイベントをバインド
-            $(`#${elemId}`).change(onChangedCheckboxStatus);
-
             // 条件を整理する
             conditions[elemId] = localStorageVal;
         });
 
-        // 実際に指定された条件で部屋のリストをフィルターする
+        // 指定された条件で DOM を変更する
         initDOM(conditions);
 
         // 非同期更新用に監視しつつフィルターを適用する
