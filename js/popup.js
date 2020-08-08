@@ -42,16 +42,6 @@ function preInitDOM() {
     // 上書き用 CSS を適用
     $('body').addClass('extension');
 
-    // 鍵部屋表示
-    [EID_CHECKBOX_LOCKEDROOM_PUBLIC, EID_CHECKBOX_LOCKEDROOM_PRIVATE].forEach(elemId => {
-        $(`#${elemId}`).change(function () {
-            // Local Storage を更新するだけ
-            const key = $(this).attr('id');
-            const value = $(this).prop("checked");
-            setLocalStorageObject(key, value);
-        });
-    });
-
     // 条件ボタンの追加
     const newConditionItem = $(`
         <div class="conditionItem addition fz-14 fz-md-14 fw-700">
@@ -93,14 +83,6 @@ function preInitDOM() {
  */
 function initDOM(conditions) {
 
-    // Locked Room - 鍵付き部屋をフィルター 仮
-    [EID_CHECKBOX_LOCKEDROOM_PUBLIC, EID_CHECKBOX_LOCKEDROOM_PRIVATE].forEach(elemId => {
-        // MEMO: ボタンの初期状態は checked なので false の時にクリックさせる
-        if (conditions[elemId] === false) { 
-            $(`#${elemId}`).trigger("click");
-        }
-    });
-
     // Legacy Style - NETDUETTO 風のリスト表示
     if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
 
@@ -134,7 +116,32 @@ function initDOM(conditions) {
     if (conditions[EID_CHECKBOX_DISPLAY_TWEET] === false) {
         $('.tweetList').css('display', 'none');
         $('.contentsBody').css('width', '100%');
+
+        // HACK: 
+        // オリジナルスタイルのリスト表示において、公式ツイートを非表示にすると横幅が拡張される分、
+        // roomsInner の高さが小さくなるため、 roomsInner の縦間で不自然なマージンが残る。
+        // ウィンドウをリサイズするか、フィルターを更新することで適切な位置を再計算する処理が走るため、
+        // ここでは鍵無しボタンを 2 回クリックすることでそれを走らせる。
+        $(`#${EID_CHECKBOX_LOCKEDROOM_PUBLIC}`).trigger("click");
+        $(`#${EID_CHECKBOX_LOCKEDROOM_PUBLIC}`).trigger("click");
     }
+
+    // Locked Room - 鍵付き部屋をフィルター
+    [EID_CHECKBOX_LOCKEDROOM_PUBLIC, EID_CHECKBOX_LOCKEDROOM_PRIVATE].forEach(elemId => {
+
+        // MEMO: ボタンの初期状態は checked なので false の時にクリックさせる
+        if (conditions[elemId] === false) { 
+            $(`#${elemId}`).trigger("click");
+        }
+
+        // Display Tweet のレイアウト再計算 HACK のため、それよりも後にイベントをバインドする
+        $(`#${elemId}`).change(function () {
+            // Local Storage を更新するだけ
+            const key = $(this).attr('id');
+            const value = $(this).prop("checked");
+            setLocalStorageObject(key, value);
+        });
+    });
 
     // 初回の更新
     updateDOM(conditions);
