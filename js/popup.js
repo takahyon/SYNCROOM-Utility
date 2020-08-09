@@ -1,17 +1,23 @@
 //////////////////////////////////////////////////////////////////////////////////
 // Constants and Global Variables
 const PEOPLE_MAX = 5;
-const EID_CHECKBOX_LOCKEDROOM = 'cbLockedRoom'
-const EID_CHECKBOX_NO_VACANCY_ROOM = 'cbNoVacancyRoom'
-const EID_TEXT_REGISTER = 'textRegister'
-const EID_BUTTON_REGISTER = 'btnRegister'
-const EID_LIST_TAG = 'listTag'
-var LocalStorageCache = null;
+const EID_CHECKBOX_LOCKEDROOM_PUBLIC = 'cond-status-public'
+const EID_CHECKBOX_LOCKEDROOM_PRIVATE = 'cond-status-private'
+const EID_CHECKBOX_LEGACY_STYLE = 'cbLegacyStyle'
+
+let LocalStorageCache = null;
+let conditions = {};
+
+// for Legacy Style
+let lockIconClone = null;
+let onMouseOverDescription = null;
+let onMouseOverGenre = null;
 
 //////////////////////////////////////////////////////////////////////////////////
 // Convenience Functions
+
 /**
- * ローカルストレージに値を保存する
+ * Local Storage に値を保存する
  * @param {string} key 
  * @param {*} value 
  * @param {Function} func 
@@ -21,189 +27,193 @@ function setLocalStorageObject(key, value, func) {
     objToSet[key] = value;
     chrome.storage.sync.set(objToSet, function () {
         console.log(`Set an object to the local storage: { ${key} : ${value} }`);
-        func();
+        if (func) {
+            func();
+        }
     });
 }
 
 /**
- * ページをリロードする
+ * Local Storage の状態を見る前に、DOM 上書き処理を行う
  */
-function reloadPage() {
-    chrome.tabs.getSelected(null, function (tab) {
-        const code = 'window.location.reload();';
-        chrome.tabs.executeScript(tab.id, { code: code });
+function preInitDOM() {
+
+    // 上書き用 CSS を適用
+    $('body').addClass('extension');
+
+    // 鍵部屋表示
+    [EID_CHECKBOX_LOCKEDROOM_PUBLIC, EID_CHECKBOX_LOCKEDROOM_PRIVATE].forEach(elemId => {
+        $(`#${elemId}`).change(function () {
+            // Local Storage を更新するだけ
+            const key = $(this).attr('id');
+            const value = $(this).prop("checked");
+            setLocalStorageObject(key, value);
+        });
     });
+
+    // 「レガシースタイル」ボタンの追加
+    const newConditionItem = $(`
+        <div class="conditionItem fz-14 fz-md-14 fw-700">
+            <input id="${EID_CHECKBOX_LEGACY_STYLE}" name="${EID_CHECKBOX_LEGACY_STYLE}" type="checkbox">
+            <label class="cond-checkbox" for="${EID_CHECKBOX_LEGACY_STYLE}" style="padding: 11px 15px;">
+                レガシースタイル
+            </label>
+        </div>
+    `);
+    $('.conditionList .conditionItem').eq(0).after(newConditionItem);
+    newConditionItem.ready(function() {
+        $(`#${EID_CHECKBOX_LEGACY_STYLE}`).change(function () {
+            // Local Storage を更新してページをリロード
+            const key = $(this).attr('id');
+            const value = $(this).prop("checked");
+            setLocalStorageObject(key, value, function () {
+                location.reload();
+            });
+        });
+        if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
+            // もし既に conditions が生成されていたら見た目を初期化
+            $(`#${EID_CHECKBOX_LEGACY_STYLE}`).prop('checked', true);
+        }
+    });
+
 }
 
 /**
- * タグをリストに追加 (見た目だけ)
- * @param {String} tag 
- */
-function addTagToList(tag) {
-    $(`#${EID_LIST_TAG}`).append(`<li data-tag="${tag}" onclick>${tag}</ul>`);
-}
-
-/**
- * チェックボックスの状態が変更されたときのイベント
- */
-function onChangedCheckboxStatus() {
-    // Local Storage を更新してページをリロード
-    const key = $(this).attr('id');
-    const value = $(this).prop("checked");
-    setLocalStorageObject(key, value, reloadPage);
-}
-
-/**
- * タグ登録ボタンがクリックされたときのイベント
- */
-function onClickTagRegisterButton() {
-    const inputElem = $(`#${EID_TEXT_REGISTER}`);
-    const tag = inputElem.val();
-    if (!tag) { return; }
-
-    // テキストフィールドの中を空にする
-    inputElem.val('');
-
-    // ul 要素を追加（タグリスト）
-    addTagToList(tag);
-
-    // Local Storage にタグを保存
-    let tagsArray = LocalStorageCache[EID_LIST_TAG];
-    if (!tagsArray) { tagsArray = []; }
-    if (tagsArray.indexOf(tag) === -1) {
-        tagsArray.push(tag);
-    }
-    setLocalStorageObject(EID_LIST_TAG, tagsArray, reloadPage);
-}
-
-/**
- * 登録済みタグがクリックされたときのイベント
- */
-function onClickRegiteredTag() {
-    const tag = $(this).data('tag');
-    if (!tag) { return; }
-
-    // タグをリストから削除
-    $(this).remove();
-
-    // Local Storage からタグを削除
-    let tagsArray = LocalStorageCache[EID_LIST_TAG];
-    if (!tagsArray) { tagsArray = []; }
-    const indexToRemove = tagsArray.indexOf(tag);
-    if (indexToRemove !== -1) {
-        tagsArray.splice(indexToRemove, 1);
-    }
-    setLocalStorageObject(EID_LIST_TAG, tagsArray, reloadPage);
-}
-
-/**
- * DOM を編集して部屋のリストを絞り込む
+ * Local Storage の状態にあわせて、 DOM を初期化する
  * @param {Object} conditions
  */
-let isFirstTime = true;
-function filterRoomBox(conditions) {
+function initDOM(conditions) {
 
-    // lockedRoom - 鍵付き部屋をフィルター 仮
-    let checked =  $("#cond-status-private").prop("checked")
-    console.log(checked)
-    if (conditions[EID_CHECKBOX_LOCKEDROOM] && checked) {
-        $("#cond-status-private").trigger("click")
+    // Locked Room - 鍵付き部屋をフィルター 仮
+    [EID_CHECKBOX_LOCKEDROOM_PUBLIC, EID_CHECKBOX_LOCKEDROOM_PRIVATE].forEach(elemId => {
+        // MEMO: ボタンの初期状態は checked なので false の時にクリックさせる
+        if (conditions[elemId] === false) { 
+            $(`#${elemId}`).trigger("click");
+        }
+    });
+
+    // Legacy Style - NETDUETTO 風のリスト表示
+    if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
+
+        // CSS で補える範囲は CSS で済ませる
+        $('body').addClass('legacyStyle');
+
+        // ロックアイコンを取得 ( updateDOM で使用する )
+        lockIconClone = $('#icon-lock').clone();
+
+        // チェックボックスの見た目を更新
+        $(`#${EID_CHECKBOX_LEGACY_STYLE}`).prop('checked', true);
+
+        // 各イベント関数を定義 ( updateDOM で使用する )
+        onMouseOverDescription = function () {
+            $(this).attr('title', $(this).text());
+        };
+        onMouseOverGenre = function () {
+            const text = $(this).html()
+                .replace(/\s\/\s/g, '0/0')
+                .replace(/\s+/g, '')
+                .replace(/<\/li><li>/g, ' / ')
+                .replace('<li>', '')
+                .replace('</li>', '')
+                .replace(/0\/0/g, ' / ')
+                .replace(/&amp;/g, '&');
+            $(this).attr('title', text);
+        };
     }
 
-    // roomsInnerを一覧として
-    let roomList = $("#macy-container .roomsInner")
-    //console.log(roomList)
+    // 初回の更新
+    updateDOM(conditions);
+}
 
-    if (!roomList.length) { return; }
-    let intervalId = setInterval(function () {
+/**
+ * 非同期通信でリストが更新されるたびに、 DOM を編集する
+ * @param {Object} conditions
+ */
+let canUpdate = true;
+function updateDOM(conditions) {
 
-        clearInterval(intervalId);
+    // 最適化のため同一フレーム内の呼び出しは無視
+    if (!canUpdate) { return; }
+    canUpdate = false;
 
-        // for sorting
-        let highPriorityRooms = [];
+    // roomsInner 毎に適用する処理
+    const updateRoomsInner = function(index, element) {
 
-
-        roomList.each(function (index, element) {
-            // // lockedRoom - 鍵付き部屋をフィルター
-            // if (conditions[EID_CHECKBOX_LOCKEDROOM]) {
-            //     if (!$(element).hasClass("enterable")) {
-            //     $(element).css('display', 'none');
-            //         return;
-            //     }
-            // }
-
-            // // noVacancyRoom - 満員部屋をフィルター
-            // if (conditions[EID_CHECKBOX_NO_VACANCY_ROOM]) {
-            //     if (!$(element).hasClass("enterable")) {
-            //         $(element).css('display', 'none');
-            //         return;
-            //     }
-            // }
-
-            // TODO listTag - 登録タグのついている部屋を上位に表示
-            const listTagCondition = conditions[EID_LIST_TAG];
-            // if (listTagCondition && $("#cond-keyword").val()==="") {
-            //     console.log(listTagCondition[0])
-            //     $("#cond-keyword").val(listTagCondition[0])
-            // }
-
-
-            // if (listTagCondition) {
-            //     if ($(element).data('sorted')) {
-            //         // 既にソートされた Room は何もしない
-            //     } else {
-            //         // まだソートされていない Room
-            //         let containsAtLeastOne = false; // 該当タグが最低 1 つ含まれているか
-            //         const roomTagElems = $(element).find('.genre');
-            //         for (let i = 0; i < roomTagElems.length; i++) {
-            //             const roomTagElem = $(roomTagElems[i]);
-            //             const targetTag = roomTagElem.text();
-            //             listTagCondition.forEach(tag => {
-            //                 if (targetTag.indexOf(tag) !== -1) {
-            //                     containsAtLeastOne = true;
-            //                     roomTagElem.css('border-color', '#ff1493');
-            //                     return;
-            //                 }
-            //             });
-            //         }
-            //         if (containsAtLeastOne) {
-            //             // ソート対称
-            //             highPriorityRooms.unshift(element)
-            //             $(element).data('sorted', 1);
-            //         } else {
-            //             // ソート非対称
-            //             $(element).data('sorted', 0);
-            //         }
-            //     }
-            // }
-        });
-
-        const roomBox = roomList[0]; 
-        for (let i = 0; i < highPriorityRooms.length; i++) {
-            // 先頭に移動
-            $(roomBox).prepend(highPriorityRooms[i]);
+        if ($(element).data('updated')) {
+            //////////////////////////////////////////////
+            // 既にフィルターが適用された Room は何もしない
+            return;
         }
 
-        if (isFirstTime) {
-            console.log('RoomBox was filtered.');
-            isFirstTime = false;
+        //////////////////////////////////////////////
+        // legacyStyle - NETDUETTO 風のリスト表示
+        if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
+
+            // 参加者の表記を ND 時代に戻す
+            const peopleElem = $(element).find('.people');
+            const peopleElemText = peopleElem.text();
+            const actualPeopleElemText = peopleElemText.replace(/[0-9]名▶/, '').replace(/(参加者：)/, '<strong>$1</strong>');
+            peopleElem.html(actualPeopleElemText);
+
+            // 右上の人数表記
+            const peopleCountText = '現在 ' + peopleElemText.substr(4, 2);
+            $(element).find('.roomsDetails').append('<div class="peopleCount">' + peopleCountText + '</div>');
+
+            // 説明文をマウスオーバーで全文表示
+            $(element).find('.description').mouseover(onMouseOverDescription);
+
+            // タグをマウスオーバーで全文表示
+            $(element).find('.genre').mouseover(onMouseOverGenre);
+
+            const enterButtonElem = $(element).find('.roomIn a.enter');
+            if ($(element).hasClass('lock')) {
+                // ロックアイコンの追加
+                enterButtonElem.prepend(
+                    '<svg width="13" height="13" viewBox="0 0 20 22" style="margin: 0 15px 0 -10px">' +
+                    lockIconClone.html() +
+                    '</svg>'
+                );
+            } else {
+                // 再生アイコン
+                enterButtonElem.prepend(
+                    '<svg width="11" height="11" style="margin: 0 15px 0 -10px">' +
+                    '<path d="M0 0 L8 6 L0 11 Z"></path>' +
+                    '</svg>'
+                );
+            }
         }
 
-    }, 1);
+        //////////////////////////////////////////////
+        // アップデート済みを記録する
+        $(element).data('updated', 1);
+    }
+
+    // for 接続テストルーム
+    updateRoomsInner(0, $("#testroom-container .roomsInner"));
+
+    // for メインリスト
+    const roomList = $("#macy-container .roomsInner")
+    if (roomList.length) {
+        roomList.each(updateRoomsInner);
+    }
+
+    console.log('Updated DOM at ' + (new Date()).getTime());
+    setTimeout(function () { canUpdate = true; }, 1);
 }
 
 //////////////////////////////////////////////////////////////////////////////////
 // Initializer
+
 $(function () {
 
-    // 対応するフィルター条件
-    let filterConditions = {};
+    // ローカルストレージに依存しない DOM の初期化
+    preInitDOM();
 
     // 初期化要素に関連した Local Storage のキー
     const storageKeys = [
-        EID_CHECKBOX_LOCKEDROOM,
-        EID_CHECKBOX_NO_VACANCY_ROOM,
-        EID_LIST_TAG
+        EID_CHECKBOX_LOCKEDROOM_PUBLIC,
+        EID_CHECKBOX_LOCKEDROOM_PRIVATE,
+        EID_CHECKBOX_LEGACY_STYLE,
     ];
 
     // Local Storage から直近の値を取得して View を更新
@@ -213,11 +223,11 @@ $(function () {
 
         LocalStorageCache = result;
 
-        // 各チェックボックスの初期化
-        [EID_CHECKBOX_LOCKEDROOM, EID_CHECKBOX_NO_VACANCY_ROOM].forEach(elemId => {
+        // conditions に変換
+        storageKeys.forEach(elemId => {
 
             // 対象の条件を false で初期化
-            filterConditions[elemId] = false;
+            conditions[elemId] = false;
 
             // 直近の値が未設定なら初期値として true をセット
             let localStorageVal = result[elemId];
@@ -226,36 +236,16 @@ $(function () {
                 setLocalStorageObject(elemId, true);
             }
 
-            // チェックボックスの見た目を Local Storage の値に合わせる
-            $(`#${elemId}`).prop('checked', localStorageVal);
-
-            // チェックボックスの状態が変わったときのイベントをバインド
-            $(`#${elemId}`).change(onChangedCheckboxStatus);
-
-            // フィルターすべき条件を整理する
-            filterConditions[elemId] = localStorageVal;
+            // 条件を整理する
+            conditions[elemId] = localStorageVal;
         });
 
-        // タグリストの初期化
-        const savedTagList = result[EID_LIST_TAG];
-        filterConditions[EID_LIST_TAG] = [];
-        if (savedTagList) {
-            savedTagList.forEach(tag => { addTagToList(tag); });
-            filterConditions[EID_LIST_TAG] = savedTagList;
-        }
+        // 指定された条件で DOM を変更する
+        initDOM(conditions);
 
-        // タグ登録ボタンのイベントをバインド 
-        $(`#${EID_BUTTON_REGISTER}`).on('click', onClickTagRegisterButton);
-
-        // ul 要素（タグリスト）のイベントをバインド
-        $(document).on("click", `#${EID_LIST_TAG} li`, onClickRegiteredTag);
-
-        // 実際に指定された条件で部屋のリストをフィルターする
-        filterRoomBox(filterConditions);
-
-        // 非同期更新用に 200 [sec] 毎にフィルターをかけなおすようにしておく
-        setInterval(function () {
-            filterRoomBox(filterConditions);
-        }, 200);
+        // 非同期更新用に監視しつつフィルターを適用する
+        $('body').on('DOMSubtreeModified', '.roomsInner', function () {
+            updateDOM(conditions);
+        });
     });
 });
