@@ -339,7 +339,11 @@ $(function () {
                 bubbles: true,
                 cancelable: true,
             });
-            condKeywordInput.dispatchEvent(event);
+            if (condKeywordInput) {
+                condKeywordInput.dispatchEvent(event);
+            } else {
+                updateDOM(conditions);
+            }
         }, 1);
 
     });
