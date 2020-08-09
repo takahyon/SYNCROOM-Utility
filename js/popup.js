@@ -36,12 +36,54 @@ function setLocalStorageObject(key, value, func) {
 }
 
 /**
+ * 主にオリジナルレイアウト用に、レイアウトを再構築する
+ */
+function refreshLayout() {
+
+    const roomList = $("#macy-container .roomsInner")
+    if (roomList.length === 0) { return; }
+
+    // 列ごとにグループ分け
+    let rows = {};
+    roomList.each(function (index, element) {
+        const left = $(element).css('left');
+        if (!rows[left]) {
+            rows[left] = [element];
+        } else {
+            rows[left].push(element);
+        }
+    });
+
+    // top の値を更新
+    Object.keys(rows).forEach(function (key) {
+        const row = rows[key];
+        let top = 0;
+        row.forEach(function(roomsInner) {
+            const height = parseInt($(roomsInner).css('height').slice(0, -2));
+            $(roomsInner).css('top', top);
+            top += height + 20;
+        });
+    });
+}
+
+/**
  * Local Storage の状態を見る前に、DOM 上書き処理を行う
  */
 function preInitDOM() {
 
     // 上書き用 CSS を適用
     $('body').addClass('extension');
+
+    // Locked Room - 鍵付き部屋をフィルター
+    [EID_CHECKBOX_LOCKEDROOM_PUBLIC, EID_CHECKBOX_LOCKEDROOM_PRIVATE].forEach(elemId => {
+        // クリックしたときのイベントをバインド
+        // (リロードなしで Local Storage を更新するだけ)
+        $(`#${elemId}`).change(function () {
+            const key = $(this).attr('id');
+            const value = $(this).prop("checked");
+            setLocalStorageObject(key, value);
+        });
+    });
 
     // 条件ボタンの追加
     const newConditionItem = $(`
@@ -76,8 +118,8 @@ function preInitDOM() {
                 $(`#${elemId}`).prop('checked', conditions[elemId]);
             }
             // クリックしたときのイベントをバインド
+            // (Local Storage を更新してページをリロード)
             $(`#${elemId}`).change(function () {
-                // Local Storage を更新してページをリロード
                 const key = $(this).attr('id');
                 const value = $(this).prop("checked");
                 setLocalStorageObject(key, value, function () {
@@ -132,17 +174,8 @@ function initDOM(conditions) {
 
     // Display Tweet - 公式ツイートの表示
     if (conditions[EID_CHECKBOX_DISPLAY_TWEET] === false) {
-
         $('.tweetList').css('display', 'none');
         $('.contentsBody').css('width', '100%');
-
-        // HACK: 
-        // オリジナルスタイルのリスト表示において、公式ツイートを非表示にすると横幅が拡張される分、
-        // roomsInner の高さが小さくなるため、 roomsInner の縦間で不自然なマージンが残る。
-        // ウィンドウをリサイズするか、フィルターを更新することで適切な位置を再計算する処理が走るため、
-        // ここでは鍵無しボタンを 2 回クリックすることでそれを走らせる。
-        $(`#${EID_CHECKBOX_LOCKEDROOM_PUBLIC}`).trigger("click");
-        $(`#${EID_CHECKBOX_LOCKEDROOM_PUBLIC}`).trigger("click");
     }
     else
     {
@@ -152,27 +185,15 @@ function initDOM(conditions) {
 
     // Locked Room - 鍵付き部屋をフィルター
     [EID_CHECKBOX_LOCKEDROOM_PUBLIC, EID_CHECKBOX_LOCKEDROOM_PRIVATE].forEach(elemId => {
-
         // MEMO: ボタンの初期状態は checked なので false の時にクリックさせる
         if (conditions[elemId] === false) { 
             $(`#${elemId}`).trigger("click");
         }
-
-        // Display Tweet のレイアウト再計算 HACK のため、それよりも後にイベントをバインドする
-        $(`#${elemId}`).change(function () {
-            // Local Storage を更新するだけ
-            const key = $(this).attr('id');
-            const value = $(this).prop("checked");
-            setLocalStorageObject(key, value);
-        });
     });
-
-    // 初回の更新
-    updateDOM(conditions);
 }
 
 /**
- * 非同期通信でリストが更新されるたびに、 DOM を編集する
+ * 非同期通信等による再レイアウトでリストが更新されるたびに、 DOM を編集する
  * @param {Object} conditions
  */
 let canUpdate = true;
@@ -199,7 +220,7 @@ function updateDOM(conditions) {
         // noVacancy - 満員部屋
         if (conditions[EID_CHECKBOX_NO_VACANCY] === false) {
             if (peopleCount === PEOPLE_MAX) {
-                $(element).css('display', 'none');
+                $(element).remove();
             }
         }
 
@@ -254,7 +275,10 @@ function updateDOM(conditions) {
     }
 
     console.log('Updated DOM at ' + (new Date()).getTime());
-    setTimeout(function () { canUpdate = true; }, 1);
+    setTimeout(function () {
+        canUpdate = true; 
+        refreshLayout();
+    }, 1);
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -300,10 +324,23 @@ $(function () {
 
         // 指定された条件で DOM を変更する
         initDOM(conditions);
+        updateDOM(conditions);
 
         // 非同期更新用に監視しつつフィルターを適用する
         $('body').on('DOMSubtreeModified', '.roomsInner', function () {
             updateDOM(conditions);
         });
+
+        // 1フレーム遅延させて SYNCROOM に再レイアウトを要求する -> updateDOM の発火
+        setTimeout(function () {
+            // キーワード検索の oninput イベントに再レイアウト処理が公式にバインドされていることを利用する
+            const condKeywordInput = document.getElementById('cond-keyword');
+            const event = new Event('input', {
+                bubbles: true,
+                cancelable: true,
+            });
+            condKeywordInput.dispatchEvent(event);
+        }, 1);
+
     });
 });
