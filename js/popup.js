@@ -3,6 +3,7 @@
 const PEOPLE_MAX = 5;
 const EID_CHECKBOX_LOCKEDROOM_PUBLIC = 'cond-status-public'
 const EID_CHECKBOX_LOCKEDROOM_PRIVATE = 'cond-status-private'
+const EID_CHECKBOX_NO_VACANCY = 'cbNoVacancy'
 const EID_CHECKBOX_LEGACY_STYLE = 'cbLegacyStyle'
 const EID_CHECKBOX_DISPLAY_TWEET = 'cbDisplayTweet'
 
@@ -45,6 +46,12 @@ function preInitDOM() {
     // 条件ボタンの追加
     const newConditionItem = $(`
         <div class="conditionItem addition fz-14 fz-md-14 fw-700">
+            <input id="${EID_CHECKBOX_NO_VACANCY}" name="${EID_CHECKBOX_NO_VACANCY}" type="checkbox">
+            <label class="cond-checkbox" for="${EID_CHECKBOX_NO_VACANCY}">
+                満員
+            </label>
+        </div>
+        <div class="conditionItem addition fz-14 fz-md-14 fw-700">
             <input id="${EID_CHECKBOX_LEGACY_STYLE}" name="${EID_CHECKBOX_LEGACY_STYLE}" type="checkbox">
             <label class="cond-checkbox" for="${EID_CHECKBOX_LEGACY_STYLE}">
                 レガシースタイル
@@ -59,10 +66,14 @@ function preInitDOM() {
     `);
     $('.conditionItem').eq(0).after(newConditionItem);
     newConditionItem.ready(function () {
-        [EID_CHECKBOX_LEGACY_STYLE, EID_CHECKBOX_DISPLAY_TWEET].forEach((elemId) => {
+        [
+            EID_CHECKBOX_NO_VACANCY,
+            EID_CHECKBOX_LEGACY_STYLE, 
+            EID_CHECKBOX_DISPLAY_TWEET
+        ].forEach((elemId) => {
             // もし既に conditions が生成されていたら見た目を初期化
             if (conditions[elemId]) {
-                $(`#${elemId}`).prop('checked', true);
+                $(`#${elemId}`).prop('checked', conditions[elemId]);
             }
             // クリックしたときのイベントをバインド
             $(`#${elemId}`).change(function () {
@@ -82,6 +93,13 @@ function preInitDOM() {
  * @param {Object} conditions
  */
 function initDOM(conditions) {
+
+    // No Vacancy - 満員部屋の表示
+    if (conditions[EID_CHECKBOX_NO_VACANCY]) {
+
+        // チェックボックスの見た目を更新
+        $(`#${EID_CHECKBOX_NO_VACANCY}`).prop('checked', true);
+    }
 
     // Legacy Style - NETDUETTO 風のリスト表示
     if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
@@ -114,6 +132,7 @@ function initDOM(conditions) {
 
     // Display Tweet - 公式ツイートの表示
     if (conditions[EID_CHECKBOX_DISPLAY_TWEET] === false) {
+
         $('.tweetList').css('display', 'none');
         $('.contentsBody').css('width', '100%');
 
@@ -124,6 +143,11 @@ function initDOM(conditions) {
         // ここでは鍵無しボタンを 2 回クリックすることでそれを走らせる。
         $(`#${EID_CHECKBOX_LOCKEDROOM_PUBLIC}`).trigger("click");
         $(`#${EID_CHECKBOX_LOCKEDROOM_PUBLIC}`).trigger("click");
+    }
+    else
+    {
+        // チェックボックスの見た目を更新
+        $(`#${EID_CHECKBOX_DISPLAY_TWEET}`).prop('checked', true);
     }
 
     // Locked Room - 鍵付き部屋をフィルター
@@ -167,18 +191,28 @@ function updateDOM(conditions) {
             return;
         }
 
+        const peopleElem = $(element).find('.people');
+        const peopleElemText = peopleElem.text();
+        const peopleCount = parseInt(peopleElemText.substr(4, 1));
+
+        //////////////////////////////////////////////
+        // noVacancy - 満員部屋
+        if (conditions[EID_CHECKBOX_NO_VACANCY] === false) {
+            if (peopleCount === PEOPLE_MAX) {
+                $(element).css('display', 'none');
+            }
+        }
+
         //////////////////////////////////////////////
         // legacyStyle - NETDUETTO 風のリスト表示
         if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
 
             // 参加者の表記を ND 時代に戻す
-            const peopleElem = $(element).find('.people');
-            const peopleElemText = peopleElem.text();
             const actualPeopleElemText = peopleElemText.replace(/[0-9]名▶/, '').replace(/(参加者：)/, '<strong>$1</strong>');
             peopleElem.html(actualPeopleElemText);
 
             // 右上の人数表記
-            const peopleCountText = '現在 ' + peopleElemText.substr(4, 2);
+            const peopleCountText = `現在 ${peopleCount}名`;
             $(element).find('.roomsDetails').append('<div class="peopleCount">' + peopleCountText + '</div>');
 
             // 説明文をマウスオーバーで全文表示
@@ -232,31 +266,32 @@ $(function () {
     preInitDOM();
 
     // 初期化要素に関連した Local Storage のキー
-    const storageKeys = [
-        EID_CHECKBOX_LOCKEDROOM_PUBLIC,
-        EID_CHECKBOX_LOCKEDROOM_PRIVATE,
-        EID_CHECKBOX_LEGACY_STYLE,
-        EID_CHECKBOX_DISPLAY_TWEET,
-    ];
+    // 値は初期値
+    let storageKeys = {};
+    storageKeys[EID_CHECKBOX_LOCKEDROOM_PUBLIC] = true;
+    storageKeys[EID_CHECKBOX_LOCKEDROOM_PRIVATE] = true;
+    storageKeys[EID_CHECKBOX_NO_VACANCY] = true;
+    storageKeys[EID_CHECKBOX_LEGACY_STYLE] = false;
+    storageKeys[EID_CHECKBOX_DISPLAY_TWEET] = true;
 
     // Local Storage から直近の値を取得して View を更新
-    chrome.storage.sync.get(storageKeys, function (result) {
+    chrome.storage.sync.get(Object.keys(storageKeys), function (result) {
         console.log('Current local storage object is below:');
         console.log(result);
 
         LocalStorageCache = result;
 
         // conditions に変換
-        storageKeys.forEach(elemId => {
+        Object.keys(storageKeys).forEach(elemId => {
 
             // 対象の条件を false で初期化
             conditions[elemId] = false;
 
-            // 直近の値が未設定なら初期値として true をセット
+            // 直近の値が未設定なら初期値をセット
             let localStorageVal = result[elemId];
             if (localStorageVal === undefined) {
-                localStorageVal = true;
-                setLocalStorageObject(elemId, true);
+                localStorageVal = storageKeys[elemId];
+                setLocalStorageObject(elemId, storageKeys[elemId]);
             }
 
             // 条件を整理する
