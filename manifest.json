@@ -41,6 +41,7 @@
     "permissions": [
       "activeTab",
       "storage"
-    ]
+    ],
+    "content_security_policy": "script-src 'self' https://platform.twitter.com; object-src 'self'"
   }
 
