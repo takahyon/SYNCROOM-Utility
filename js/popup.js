@@ -4,6 +4,7 @@ const PEOPLE_MAX = 5;
 const EID_CHECKBOX_LOCKEDROOM_PUBLIC = 'cond-status-public'
 const EID_CHECKBOX_LOCKEDROOM_PRIVATE = 'cond-status-private'
 const EID_CHECKBOX_LEGACY_STYLE = 'cbLegacyStyle'
+const EID_CHECKBOX_DISPLAY_TWEET = 'cbDisplayTweet'
 
 let LocalStorageCache = null;
 let conditions = {};
@@ -41,41 +42,39 @@ function preInitDOM() {
     // 上書き用 CSS を適用
     $('body').addClass('extension');
 
-    // 鍵部屋表示
-    [EID_CHECKBOX_LOCKEDROOM_PUBLIC, EID_CHECKBOX_LOCKEDROOM_PRIVATE].forEach(elemId => {
-        $(`#${elemId}`).change(function () {
-            // Local Storage を更新するだけ
-            const key = $(this).attr('id');
-            const value = $(this).prop("checked");
-            setLocalStorageObject(key, value);
-        });
-    });
-
-    // 「レガシースタイル」ボタンの追加
+    // 条件ボタンの追加
     const newConditionItem = $(`
-        <div class="conditionItem fz-14 fz-md-14 fw-700">
+        <div class="conditionItem addition fz-14 fz-md-14 fw-700">
             <input id="${EID_CHECKBOX_LEGACY_STYLE}" name="${EID_CHECKBOX_LEGACY_STYLE}" type="checkbox">
-            <label class="cond-checkbox" for="${EID_CHECKBOX_LEGACY_STYLE}" style="padding: 11px 15px;">
+            <label class="cond-checkbox" for="${EID_CHECKBOX_LEGACY_STYLE}">
                 レガシースタイル
             </label>
         </div>
+        <div class="conditionItem addition fz-14 fz-md-14 fw-700">
+            <input id="${EID_CHECKBOX_DISPLAY_TWEET}" name="${EID_CHECKBOX_DISPLAY_TWEET}" type="checkbox">
+            <label class="cond-checkbox" for="${EID_CHECKBOX_DISPLAY_TWEET}">
+                公式ツイート
+            </label>
+        </div>
     `);
-    $('.conditionList .conditionItem').eq(0).after(newConditionItem);
-    newConditionItem.ready(function() {
-        $(`#${EID_CHECKBOX_LEGACY_STYLE}`).change(function () {
-            // Local Storage を更新してページをリロード
-            const key = $(this).attr('id');
-            const value = $(this).prop("checked");
-            setLocalStorageObject(key, value, function () {
-                location.reload();
+    $('.conditionItem').eq(0).after(newConditionItem);
+    newConditionItem.ready(function () {
+        [EID_CHECKBOX_LEGACY_STYLE, EID_CHECKBOX_DISPLAY_TWEET].forEach((elemId) => {
+            // もし既に conditions が生成されていたら見た目を初期化
+            if (conditions[elemId]) {
+                $(`#${elemId}`).prop('checked', true);
+            }
+            // クリックしたときのイベントをバインド
+            $(`#${elemId}`).change(function () {
+                // Local Storage を更新してページをリロード
+                const key = $(this).attr('id');
+                const value = $(this).prop("checked");
+                setLocalStorageObject(key, value, function () {
+                    location.reload();
+                });
             });
         });
-        if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
-            // もし既に conditions が生成されていたら見た目を初期化
-            $(`#${EID_CHECKBOX_LEGACY_STYLE}`).prop('checked', true);
-        }
     });
-
 }
 
 /**
@@ -83,14 +82,6 @@ function preInitDOM() {
  * @param {Object} conditions
  */
 function initDOM(conditions) {
-
-    // Locked Room - 鍵付き部屋をフィルター 仮
-    [EID_CHECKBOX_LOCKEDROOM_PUBLIC, EID_CHECKBOX_LOCKEDROOM_PRIVATE].forEach(elemId => {
-        // MEMO: ボタンの初期状態は checked なので false の時にクリックさせる
-        if (conditions[elemId] === false) { 
-            $(`#${elemId}`).trigger("click");
-        }
-    });
 
     // Legacy Style - NETDUETTO 風のリスト表示
     if (conditions[EID_CHECKBOX_LEGACY_STYLE]) {
@@ -120,6 +111,37 @@ function initDOM(conditions) {
             $(this).attr('title', text);
         };
     }
+
+    // Display Tweet - 公式ツイートの表示
+    if (conditions[EID_CHECKBOX_DISPLAY_TWEET] === false) {
+        $('.tweetList').css('display', 'none');
+        $('.contentsBody').css('width', '100%');
+
+        // HACK: 
+        // オリジナルスタイルのリスト表示において、公式ツイートを非表示にすると横幅が拡張される分、
+        // roomsInner の高さが小さくなるため、 roomsInner の縦間で不自然なマージンが残る。
+        // ウィンドウをリサイズするか、フィルターを更新することで適切な位置を再計算する処理が走るため、
+        // ここでは鍵無しボタンを 2 回クリックすることでそれを走らせる。
+        $(`#${EID_CHECKBOX_LOCKEDROOM_PUBLIC}`).trigger("click");
+        $(`#${EID_CHECKBOX_LOCKEDROOM_PUBLIC}`).trigger("click");
+    }
+
+    // Locked Room - 鍵付き部屋をフィルター
+    [EID_CHECKBOX_LOCKEDROOM_PUBLIC, EID_CHECKBOX_LOCKEDROOM_PRIVATE].forEach(elemId => {
+
+        // MEMO: ボタンの初期状態は checked なので false の時にクリックさせる
+        if (conditions[elemId] === false) { 
+            $(`#${elemId}`).trigger("click");
+        }
+
+        // Display Tweet のレイアウト再計算 HACK のため、それよりも後にイベントをバインドする
+        $(`#${elemId}`).change(function () {
+            // Local Storage を更新するだけ
+            const key = $(this).attr('id');
+            const value = $(this).prop("checked");
+            setLocalStorageObject(key, value);
+        });
+    });
 
     // 初回の更新
     updateDOM(conditions);
@@ -214,6 +236,7 @@ $(function () {
         EID_CHECKBOX_LOCKEDROOM_PUBLIC,
         EID_CHECKBOX_LOCKEDROOM_PRIVATE,
         EID_CHECKBOX_LEGACY_STYLE,
+        EID_CHECKBOX_DISPLAY_TWEET,
     ];
 
     // Local Storage から直近の値を取得して View を更新
