@@ -47,6 +47,15 @@
   border-top: 1px solid #888888;
 }
 
+#ndHiddenBlocker .contributor {
+  list-style: none;
+}
+
+#ndHiddenBlocker .contributor li{
+  list-style: none;
+  margin-bottom: 2px;
+}
+
 /* === ボタンを表示するエリア ============================== */
 #ndHiddenBlocker .switchArea {
   display        : inline-block;        /* 横に並べる        */
